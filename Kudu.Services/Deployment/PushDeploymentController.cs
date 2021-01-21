@@ -68,8 +68,6 @@ namespace Kudu.Services.Deployment
         {
             using (_tracer.Step("ZipPushDeploy"))
             {
-                string deploymentId = GetExternalDeploymentId(Request);
-
                 var deploymentInfo = new ArtifactDeploymentInfo(_environment, _traceFactory)
                 {
                     AllowDeploymentWhileScmDisabled = true,
@@ -79,7 +77,6 @@ namespace Kudu.Services.Deployment
                     IsReusable = false,
                     TargetChangeset = DeploymentManager.CreateTemporaryChangeSet(message: "Deploying from pushed zip file"),
                     CommitId = null,
-                    ExternalDeploymentId = deploymentId,
                     RepositoryType = RepositoryType.None,
                     Fetch = LocalZipHandler,
                     DoFullBuildByDefault = false,
@@ -114,8 +111,6 @@ namespace Kudu.Services.Deployment
         {
             using (_tracer.Step("WarPushDeploy"))
             {
-                string deploymentId = GetExternalDeploymentId(Request);
-
                 var appName = Request.RequestUri.ParseQueryString()["name"];
 
                 if (string.IsNullOrWhiteSpace(appName))
@@ -135,7 +130,6 @@ namespace Kudu.Services.Deployment
                     CleanupTargetDirectory = true, // For now, always cleanup the target directory. If needed, make it configurable
                     TargetChangeset = DeploymentManager.CreateTemporaryChangeSet(message: "Deploying from pushed war file"),
                     CommitId = null,
-                    ExternalDeploymentId = deploymentId,
                     RepositoryType = RepositoryType.None,
                     Fetch = LocalZipFetch,
                     DoFullBuildByDefault = false,
@@ -177,8 +171,6 @@ namespace Kudu.Services.Deployment
         {
             using (_tracer.Step(Constants.OneDeploy))
             {
-                string deploymentId = GetExternalDeploymentId(Request);
-
                 JObject requestObject = null;
 
                 try
@@ -230,7 +222,6 @@ namespace Kudu.Services.Deployment
                     TargetRootPath = _environment.WebRootPath,
                     TargetChangeset = DeploymentManager.CreateTemporaryChangeSet(message: Constants.OneDeploy),
                     CommitId = null,
-                    ExternalDeploymentId = deploymentId,
                     RepositoryType = RepositoryType.None,
                     Fetch = OneDeployFetch,
                     DoFullBuildByDefault = false,
@@ -346,19 +337,6 @@ namespace Kudu.Services.Deployment
 
                 return await PushDeployAsync(deploymentInfo, isAsync, requestObject, artifactType);
             }
-        }
-
-        private static string GetExternalDeploymentId(HttpRequestMessage request)
-        {
-            string deploymentId = null;
-            IEnumerable<string> idValues;
-
-            if (request.Headers.TryGetValues(Constants.ScmDeploymentIdHeader, out idValues) && idValues.Count() > 0)
-            {
-                deploymentId = idValues.ElementAt(0);
-            }
-
-            return deploymentId;
         }
 
         private HttpResponseMessage StatusCode400(string message)
